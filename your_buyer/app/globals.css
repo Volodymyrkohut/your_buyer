@@ -202,3 +202,35 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
+
+/* React Select Styles */
+.react-select-container {
+  width: 100%;
+}
+
+.react-select__control {
+  border-color: #D1D5DB !important;
+  min-height: 40px !important;
+}
+
+.react-select__control:hover {
+  border-color: #4A90E2 !important;
+}
+
+.react-select__control--is-focused {
+  border-color: #4A90E2 !important;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2) !important;
+}
+
+.react-select__menu {
+  z-index: 9999;
+}
+
+.react-select__option--is-focused {
+  background-color: #E5F0FF !important;
+}
+
+.react-select__option--is-selected {
+  background-color: #4A90E2 !important;
+  color: white !important;
+}

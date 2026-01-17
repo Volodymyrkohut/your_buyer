@@ -7,6 +7,7 @@ import { Heart, Eye, ShoppingCart, GitCompare, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { generateSlug, type Product } from "@/lib/products"
 import { useCart } from "@/app/contexts/CartContext"
+import { useWishlist } from "@/app/contexts/WishlistContext"
 import { CartDropdown } from "@/app/components/cart/CartDropdown"
 
 export type { Product }
@@ -25,6 +26,7 @@ export const ProductCard = ({
   isWishlistMode = false 
 }: ProductCardProps) => {
   const { addItem, getItemQuantity, items } = useCart()
+  const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlist()
   const [showCartDropdown, setShowCartDropdown] = useState(false)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -32,6 +34,7 @@ export const ProductCard = ({
   const productUrl = `/products/${productSlug}`
   const cartQuantity = getItemQuantity(product.id)
   const hasItemsInCart = items.length > 0
+  const inWishlist = isInWishlist(product.id)
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -48,6 +51,20 @@ export const ProductCard = ({
     e.stopPropagation()
     if (onRemoveFromWishlist) {
       onRemoveFromWishlist(product.id)
+    }
+  }
+
+  const handleToggleWishlist = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    try {
+      if (inWishlist) {
+        await removeFromWishlist(product.id)
+      } else {
+        await addToWishlist(product)
+      }
+    } catch (error) {
+      console.error('Failed to toggle wishlist:', error)
     }
   }
 
@@ -99,8 +116,14 @@ export const ProductCard = ({
             >
               <Eye className="h-4 w-4 text-primary-100" />
             </Link>
-            <button className="rounded-full bg-white p-2 text-primary-100 transition-colors hover:bg-grey-100">
-              <Heart className="h-4 w-4 text-primary-100" />
+            <button
+              onClick={handleToggleWishlist}
+              className={`rounded-full bg-white p-2 transition-colors hover:bg-grey-100 ${
+                inWishlist ? 'text-red-500' : 'text-primary-100'
+              }`}
+              aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
+            >
+              <Heart className={`h-4 w-4 ${inWishlist ? 'fill-current' : ''}`} />
             </button>
             <button className="rounded-full bg-white p-2 text-primary-100 transition-colors hover:bg-grey-100">
               <GitCompare className="h-4 w-4 text-primary-100" />

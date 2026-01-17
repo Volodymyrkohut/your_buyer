@@ -13,6 +13,7 @@ import {
 import { ShoppingCart, Heart, GitCompare, Minus, Plus } from "lucide-react"
 import { ProductDetail } from "@/lib/products"
 import { useCart } from "@/app/contexts/CartContext"
+import { useWishlist } from "@/app/contexts/WishlistContext"
 import { CartDropdown } from "@/app/components/cart/CartDropdown"
 
 interface ProductInfoProps {
@@ -21,6 +22,7 @@ interface ProductInfoProps {
 
 export const ProductInfo = ({ product }: ProductInfoProps) => {
   const { addItem, getItemQuantity, items } = useCart()
+  const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlist()
   const [quantity, setQuantity] = useState(1)
   const [selectedSize, setSelectedSize] = useState<string>("")
   const [selectedColor, setSelectedColor] = useState<string>("")
@@ -29,6 +31,7 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
   const buttonRef = useRef<HTMLButtonElement>(null)
   const cartQuantity = getItemQuantity(product.id)
   const hasItemsInCart = items.length > 0
+  const inWishlist = isInWishlist(product.id)
 
   const handleMouseEnter = () => {
     if (timeoutRef.current) {
@@ -57,6 +60,18 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
 
   const handleAddToCart = () => {
     addItem(product, quantity)
+  }
+
+  const handleToggleWishlist = async () => {
+    try {
+      if (inWishlist) {
+        await removeFromWishlist(product.id)
+      } else {
+        await addToWishlist(product)
+      }
+    } catch (error) {
+      console.error('Failed to toggle wishlist:', error)
+    }
   }
 
   const discountPercentage = product.originalPrice
@@ -226,9 +241,14 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
             </div>
           )}
         </div>
-        <Button variant="outline" size="lg" className="sm:w-auto">
-          <Heart className="mr-2 h-5 w-5" />
-          Wishlist
+        <Button
+          variant="outline"
+          size="lg"
+          className={`sm:w-auto ${inWishlist ? 'border-red-500 text-red-500 hover:bg-red-50' : ''}`}
+          onClick={handleToggleWishlist}
+        >
+          <Heart className={`mr-2 h-5 w-5 ${inWishlist ? 'fill-current' : ''}`} />
+          {inWishlist ? 'In Wishlist' : 'Wishlist'}
         </Button>
         <Button variant="outline" size="lg" className="sm:w-auto">
           <GitCompare className="mr-2 h-5 w-5" />

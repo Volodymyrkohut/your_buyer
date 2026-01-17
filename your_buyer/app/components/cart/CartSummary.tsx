@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { Button } from "@/app/components/ui/button"
 import { Input } from "@/app/components/ui/input"
@@ -71,8 +72,8 @@ export const CartSummary = ({ items }: CartSummaryProps) => {
         </div>
 
         {/* Checkout Button */}
-        <Button className="w-full" size="lg">
-          Proceed to Checkout
+        <Button className="w-full" size="lg" asChild>
+          <Link href="/checkout">Оформити замовлення</Link>
         </Button>
       </CardContent>
     </Card>

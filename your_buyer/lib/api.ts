@@ -38,6 +38,7 @@ export interface UserResponse {
   id: number
   name: string
   surname?: string
+  middlename?: string
   email: string
   phone?: string
   sex?: string
@@ -164,7 +165,62 @@ export interface PaginatedProductsResponse {
   }
 }
 
+export interface OrderItem {
+  id: number
+  order_id: number
+  product_id: number
+  quantity: number
+  price_at_order: number
+  product: Product
+  created_at?: string
+  updated_at?: string
+}
+
 export interface Order {
+  id: number
+  user_id?: number | null
+  name: string
+  surname: string
+  middlename?: string | null
+  phone: string
+  delivery_city: string
+  delivery_department: string
+  dont_call: boolean
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
+  total_amount: number
+  order_items?: OrderItem[]
+  user?: UserResponse
+  created_at?: string
+  updated_at?: string
+}
+
+export interface CreateOrderRequest {
+  name: string
+  surname: string
+  middlename?: string
+  phone: string
+  delivery_city: string
+  delivery_department: string
+  dont_call?: boolean
+}
+
+export interface OrderResponse {
+  success: boolean
+  message?: string
+  data: {
+    order: Order
+  }
+}
+
+export interface OrdersResponse {
+  success: boolean
+  data: {
+    orders: Order[]
+  }
+}
+
+// Legacy Order interface for admin/account pages (keep for backward compatibility)
+export interface LegacyOrder {
   id: string
   productName: string
   size?: string
@@ -672,4 +728,168 @@ export async function mergeCart(anonymousToken: string): Promise<CartItem[]> {
     body: JSON.stringify({ anonymous_token: anonymousToken }),
   })
   return response.data.cart_items || []
+}
+
+/**
+ * Wishlist interfaces
+ */
+export interface WishlistItem {
+  id: number
+  user_id: number
+  product_id: number
+  product: Product
+  created_at?: string
+  updated_at?: string
+}
+
+export interface WishlistResponse {
+  success: boolean
+  message?: string
+  data: {
+    wishlist_item: WishlistItem
+  }
+}
+
+export interface WishlistItemsResponse {
+  success: boolean
+  data: {
+    wishlist_items: WishlistItem[]
+  }
+}
+
+/**
+ * Add product to wishlist
+ */
+export async function addToWishlist(productId: number): Promise<WishlistItem> {
+  const response = await apiRequest<WishlistResponse>('/wishlist/add', {
+    method: 'POST',
+    body: JSON.stringify({
+      product_id: productId,
+    }),
+  })
+  return response.data.wishlist_item
+}
+
+/**
+ * Get wishlist items
+ */
+export async function getWishlist(): Promise<WishlistItem[]> {
+  const response = await apiRequest<WishlistItemsResponse>('/wishlist', {
+    method: 'GET',
+  })
+  return response.data.wishlist_items || []
+}
+
+/**
+ * Remove item from wishlist
+ */
+export async function removeFromWishlist(id: number): Promise<void> {
+  await apiRequest<void>(`/wishlist/${id}`, {
+    method: 'DELETE',
+  })
+}
+
+/**
+ * Clear wishlist
+ */
+export async function clearWishlist(): Promise<void> {
+  await apiRequest<void>('/wishlist/clear', {
+    method: 'DELETE',
+  })
+}
+
+/**
+ * Order functions
+ */
+
+/**
+ * Create a new order
+ */
+export async function createOrder(data: CreateOrderRequest): Promise<Order> {
+  const response = await apiRequest<OrderResponse>('/orders', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+  return response.data.order
+}
+
+/**
+ * Get all orders (admin only)
+ */
+export async function getOrders(): Promise<Order[]> {
+  const response = await apiRequest<OrdersResponse>('/admin/orders', {
+    method: 'GET',
+  })
+  // Convert string numeric values to numbers to ensure proper typing
+  return response.data.orders.map(order => ({
+    ...order,
+    total_amount: typeof order.total_amount === 'string' 
+      ? parseFloat(order.total_amount) 
+      : order.total_amount,
+    order_items: order.order_items?.map(item => ({
+      ...item,
+      price_at_order: typeof item.price_at_order === 'string'
+        ? parseFloat(item.price_at_order)
+        : item.price_at_order,
+    })),
+  }))
+}
+
+/**
+ * Nova Poshta interfaces and functions
+ */
+
+export interface NovaPoshtaCity {
+  Ref: string
+  Description: string
+  DescriptionRu?: string
+  DescriptionEn?: string
+  Area?: string
+  SettlementType?: string
+  [key: string]: any
+}
+
+export interface NovaPoshtaDepartment {
+  Ref: string
+  Description: string
+  DescriptionRu?: string
+  DescriptionEn?: string
+  CityRef: string
+  [key: string]: any
+}
+
+export interface NovaPoshtaCitiesResponse {
+  success: boolean
+  data: {
+    cities: NovaPoshtaCity[]
+  }
+}
+
+export interface NovaPoshtaDepartmentsResponse {
+  success: boolean
+  data: {
+    departments: NovaPoshtaDepartment[]
+  }
+}
+
+/**
+ * Get Nova Poshta cities
+ */
+export async function getNovaPoshtaCities(query?: string): Promise<NovaPoshtaCity[]> {
+  const queryParams = query ? `?query=${encodeURIComponent(query)}` : ''
+  const response = await apiRequest<NovaPoshtaCitiesResponse>(`/nova-poshta/cities${queryParams}`, {
+    method: 'GET',
+  })
+  return response.data.cities
+}
+
+/**
+ * Get Nova Poshta departments for a city
+ */
+export async function getNovaPoshtaDepartments(cityRef: string): Promise<NovaPoshtaDepartment[]> {
+  const response = await apiRequest<NovaPoshtaDepartmentsResponse>('/nova-poshta/departments', {
+    method: 'POST',
+    body: JSON.stringify({ city_ref: cityRef }),
+  })
+  return response.data.departments
 }
