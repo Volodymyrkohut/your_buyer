@@ -104,6 +104,7 @@ export const allProducts: Product[] = [
 // Extended product type for detail page
 export interface ProductDetail extends Product {
   description?: string
+  short_description?: string
   images?: string[]
   sizes?: string[]
   colors?: string[]

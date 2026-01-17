@@ -96,6 +96,13 @@ export const ProductInfo = ({ product }: ProductInfoProps) => {
         )}
       </div>
 
+      {/* Short Description */}
+      {product.short_description && (
+        <div>
+          <p className="text-grey-600 leading-relaxed text-lg">{product.short_description}</p>
+        </div>
+      )}
+
       {/* Description */}
       {product.description && (
         <div>

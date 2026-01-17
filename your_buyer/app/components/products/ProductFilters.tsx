@@ -2,8 +2,9 @@
 
 import { Card } from "@/app/components/ui/card"
 import { Button } from "@/app/components/ui/button"
-import { ChevronUp, ChevronDown } from "lucide-react"
-import { useState } from "react"
+import { ChevronUp, ChevronDown, Search } from "lucide-react"
+import { useState, useEffect } from "react"
+import { getCategories, type Category } from "@/lib/api"
 
 interface FilterSectionProps {
   title: string
@@ -32,23 +33,47 @@ const FilterSection = ({ title, children, defaultOpen = true }: FilterSectionPro
   )
 }
 
-export const ProductFilters = () => {
-  const [priceRange, setPriceRange] = useState([0, 2000])
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+interface ProductFiltersProps {
+  searchQuery?: string
+  onSearchChange?: (query: string) => void
+  selectedCategoryId?: number
+  onCategoryChange?: (categoryId: number | undefined) => void
+  priceRange?: [number, number]
+  onPriceRangeChange?: (range: [number, number]) => void
+}
+
+export const ProductFilters = ({
+  searchQuery = "",
+  onSearchChange,
+  selectedCategoryId,
+  onCategoryChange,
+  priceRange = [0, 2000],
+  onPriceRangeChange,
+}: ProductFiltersProps) => {
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loadingCategories, setLoadingCategories] = useState(false)
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
   const [selectedColors, setSelectedColors] = useState<string[]>([])
 
-  const categories = [
-    { name: "Men", count: 0 },
-    { name: "Women", count: 0 },
-    { name: "Kids", count: 0 },
-    { name: "Bags", count: 0 },
-    { name: "Belts", count: 0 },
-    { name: "Wallets", count: 0 },
-    { name: "Watches", count: 0 },
-    { name: "Accessories", count: 0 },
-    { name: "Winter Wear", count: 0 },
-  ]
+  // Load categories from API
+  useEffect(() => {
+    const loadCategories = async () => {
+      setLoadingCategories(true)
+      try {
+        // Try to load categories, but it might require auth
+        // For now, we'll catch the error and continue without categories
+        const cats = await getCategories()
+        setCategories(cats)
+      } catch (error) {
+        // Categories endpoint might require auth, so we'll continue without them
+        console.warn("Could not load categories:", error)
+      } finally {
+        setLoadingCategories(false)
+      }
+    }
+    loadCategories()
+  }, [])
+
   const sizes = [
     { name: "S", count: 6 },
     { name: "M", count: 20 },
@@ -65,12 +90,18 @@ export const ProductFilters = () => {
     { name: "Yellow", value: "#FFFF00", count: 2 },
   ]
 
-  const toggleCategory = (category: string) => {
-    setSelectedCategories((prev) =>
-      prev.includes(category)
-        ? prev.filter((c) => c !== category)
-        : [...prev, category]
-    )
+  const handleCategoryToggle = (categoryId: number) => {
+    if (onCategoryChange) {
+      onCategoryChange(selectedCategoryId === categoryId ? undefined : categoryId)
+    }
+  }
+
+  const handlePriceChange = (index: number, value: number) => {
+    if (onPriceRangeChange) {
+      const newRange: [number, number] = [...priceRange] as [number, number]
+      newRange[index] = value
+      onPriceRangeChange(newRange)
+    }
   }
 
   const toggleSize = (size: string) => {
@@ -85,41 +116,57 @@ export const ProductFilters = () => {
     )
   }
 
-  const handlePriceChange = (index: number, value: number) => {
-    const newRange = [...priceRange]
-    newRange[index] = value
-    setPriceRange(newRange)
-  }
-
   return (
     <Card className="border-0 bg-white p-6 shadow-sm">
       <h2 className="mb-6 text-lg font-semibold text-primary-100">Filters</h2>
 
       <div className="space-y-6">
-        {/* Product Categories */}
-        <FilterSection title="Product Categories" defaultOpen={true}>
-          <div className="space-y-2">
-            {categories.map((category) => (
-              <label
-                key={category.name}
-                className="flex cursor-pointer items-center justify-between gap-2"
-              >
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedCategories.includes(category.name)}
-                    onChange={() => toggleCategory(category.name)}
-                    className="h-4 w-4 rounded border-grey-300 text-primary-100"
-                  />
-                  <span className="text-sm text-grey-600">{category.name}</span>
-                </div>
-                {category.count > 0 && (
-                  <span className="text-xs text-grey-400">({category.count})</span>
-                )}
-              </label>
-            ))}
+        {/* Search */}
+        <FilterSection title="Search" defaultOpen={true}>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-grey-400" />
+            <input
+              type="text"
+              placeholder="Search products..."
+              value={searchQuery}
+              onChange={(e) => onSearchChange?.(e.target.value)}
+              className="w-full rounded-md border border-grey-300 px-10 py-2 text-sm focus:border-primary-100 focus:outline-none focus:ring-1 focus:ring-primary-100"
+            />
           </div>
         </FilterSection>
+
+        {/* Product Categories */}
+        {categories.length > 0 && (
+          <FilterSection title="Product Categories" defaultOpen={true}>
+            <div className="space-y-2">
+              {categories.map((category) => (
+                <label
+                  key={category.id}
+                  className="flex cursor-pointer items-center justify-between gap-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="category"
+                      checked={selectedCategoryId === category.id}
+                      onChange={() => handleCategoryToggle(category.id)}
+                      className="h-4 w-4 border-grey-300 text-primary-100"
+                    />
+                    <span className="text-sm text-grey-600">{category.name}</span>
+                  </div>
+                </label>
+              ))}
+              {selectedCategoryId && (
+                <button
+                  onClick={() => onCategoryChange?.(undefined)}
+                  className="mt-2 text-xs text-primary-100 hover:underline"
+                >
+                  Clear filter
+                </button>
+              )}
+            </div>
+          </FilterSection>
+        )}
 
         {/* Filter by Price */}
         <FilterSection title="Filter by Price" defaultOpen={true}>

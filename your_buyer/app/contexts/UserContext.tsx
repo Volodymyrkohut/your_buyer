@@ -9,6 +9,9 @@ import {
   setAuthToken,
   removeAuthToken,
   getAuthToken,
+  getAnonymousToken,
+  clearAnonymousToken,
+  mergeCart,
   type LoginRequest,
   type RegisterRequest,
   type UserResponse,
@@ -137,6 +140,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
       } else {
         await fetchUser()
       }
+
+      // Мердж анонімного кошика з кошиком користувача
+      try {
+        const anonymousToken = getAnonymousToken()
+        if (anonymousToken) {
+          await mergeCart(anonymousToken)
+          clearAnonymousToken()
+        }
+      } catch (mergeError) {
+        // Якщо мердж не вдався, не блокуємо логін
+        console.error('Failed to merge cart:', mergeError)
+      }
     } catch (err) {
       const apiError = err as ApiError
       setError(apiError.message || "Помилка авторизації")
@@ -168,6 +183,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
         setIsAuthenticated(true)
       } else {
         await fetchUser()
+      }
+
+      // Мердж анонімного кошика з кошиком користувача
+      try {
+        const anonymousToken = getAnonymousToken()
+        if (anonymousToken) {
+          await mergeCart(anonymousToken)
+          clearAnonymousToken()
+        }
+      } catch (mergeError) {
+        // Якщо мердж не вдався, не блокуємо реєстрацію
+        console.error('Failed to merge cart:', mergeError)
       }
     } catch (err) {
       console.error('UserContext.register: Error caught!', err)
