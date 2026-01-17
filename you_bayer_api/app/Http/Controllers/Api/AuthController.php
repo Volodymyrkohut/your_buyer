@@ -178,4 +178,27 @@ class AuthController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get all users (admin endpoint)
+     */
+    public function getAllUsers(Request $request): JsonResponse
+    {
+        try {
+            $users = User::orderBy('created_at', 'desc')->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'users' => $users,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch users',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }
